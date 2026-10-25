@@ -8,6 +8,8 @@ const MAX_REPLY_LINE = 1024 * 1024 + 1024;
 
 /** The host is not running (no agent session in the wallet). */
 export class WalletUnavailableError extends Error {}
+/** The connection broke after the request was written: the wallet may have acted on it. */
+export class WalletDisconnectedError extends WalletUnavailableError {}
 export class WalletTimeoutError extends Error {}
 export class WalletProtocolError extends Error {}
 
@@ -61,10 +63,14 @@ export function callWallet(sockPath, req, { timeoutMs = 30_000 } = {}) {
       if (!connected && (err.code === 'ENOENT' || err.code === 'ECONNREFUSED' || err.code === 'ENOTSOCK')) {
         finish(reject, new WalletUnavailableError('agent session not running'));
       } else {
-        finish(reject, new WalletUnavailableError(`socket error: ${err.code ?? err.message}`));
+        const E = connected ? WalletDisconnectedError : WalletUnavailableError;
+        finish(reject, new E(`socket error: ${err.code ?? err.message}`));
       }
     });
-    socket.on('close', () => finish(reject, new WalletUnavailableError('connection closed before a reply')));
+    socket.on('close', () => {
+      const E = connected ? WalletDisconnectedError : WalletUnavailableError;
+      finish(reject, new E('connection closed before a reply'));
+    });
   });
 }
 

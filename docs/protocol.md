@@ -1,11 +1,11 @@
-# P2b protocol (extension ⇄ host ⇄ MCP)
+# P2 protocol (extension ⇄ host ⇄ MCP)
 
-> Copied verbatim from `dogeuni-wallet/docs/ai-wallet-p2-plan.md` §2.1 (2026-10-25). That section is the source of truth; change both repos together and bump `v`.
+> Copied verbatim from `dogeuni-wallet/docs/ai-wallet-p2-plan.md` §2.1 (2026-10-25, includes P2c). That section is the source of truth; change both repos together. `v` changes only when the message format changes; new methods and error codes do not bump it.
 > The "Test vectors" and "Implementation notes" sections at the end are added here (dogeuni-mcp side) and are not part of the copied text.
 
-### 2.1 P2b 协议（扩展 ⇄ host ⇄ MCP 的契约）
+### 2.1 协议（扩展 ⇄ host ⇄ MCP 的契约，P2b 建立，P2c 增加转账）
 
-两个仓库各自实现、各自测试，以这一节为准；改协议要同时改两边，并把 `v` 加一。
+两个仓库各自实现、各自测试，以这一节为准，改协议要同时改两边。`v` 管的是 host ⇄ 扩展的消息格式，格式变了才加一；新增方法和错误码是向后兼容的，不加 `v`（host 只转发，不认方法名）。
 
 **host**：名字 `com.dogeuni.agent`，由 `dogeuni-mcp` 包提供。
 
@@ -36,13 +36,15 @@
 | `BAD_REQUEST` | 格式不对 |
 | `UNAUTHORIZED` | 没带 token，或 token 未配对 / 已撤销 |
 | `UNKNOWN_METHOD` | 没有这个方法 |
-| `BUSY` | 已有一个配对在等确认 |
-| `DENIED` | 用户拒绝、关掉了确认窗、agent 断开，或已配对满 5 个 |
-| `TIMEOUT` | 5 分钟内没有确认 |
+| `BUSY` | 已有一个配对在等确认，或已有一笔转账在等审批 |
+| `DENIED` | 用户拒绝、关掉了确认窗、agent 断开，或已配对满 5 个；转账被策略拒绝（message 里列出原因码），或审批被拒 |
+| `TIMEOUT` | 5 分钟内没有确认（配对或转账审批） |
+| `INSUFFICIENT_FUNDS` | agent 账户的可用 UTXO 不够付金额 + 手续费 |
+| `BROADCAST_FAILED` | 交易已签名，广播被节点拒绝或请求失败；额度不释放，交易可能已经发出，agent 不要直接重试 |
 | `NO_SESSION` | 调用时 agent 会话已经结束（正常情况下会话一结束 host 就退出了） |
 | `INTERNAL` | 其他错误，message 里不带细节 |
 
-**方法（P2b 只有只读和配对）**：
+**方法**：
 
 | 方法 | params | result |
 |---|---|---|
@@ -50,6 +52,23 @@
 | `wallet.status` | `{}` | `{session:{expiresAt}, agent:{agentId,name}}` |
 | `account.get` | `{}` | `{address}`，只返回 agent 账户 |
 | `account.balance` | `{}` | `{address, amount}`，`amount` 是 DOGE 的十进制字符串 |
+| `fee.quote`（P2c） | `{to, amount}` | `{fee, feePerKb}` |
+| `send.prepare`（P2c） | `{to, amount}` | `{prepareId, to, amount, fee, expiresAt, policy:{decision, reasons}}` |
+| `send.submit`（P2c） | `{prepareId}` | `{txid, to, amount, fee, approvedBy: 'grant'\|'user'}` |
+
+金额一律是 DOGE 的十进制字符串（最多 8 位小数）。params 只认表里列出的键，多一个键就是 `BAD_REQUEST`：agent 没有办法指定从哪个账户付款，永远是 agent 账户。
+
+**转账（P2c）**：
+
+1. `send.prepare` 在扩展里构造交易，不签名：
+   - 选币：只用 agent 账户的 UTXO，去掉低于 dust（0.01 DOGE）的（铭文都在这类小额 UTXO 上），去掉本会话里已被准备中或已广播的交易占用的；每个输入都取回原始交易并核对 txid，金额和脚本以原始交易为准，不信 UTXO 接口。
+   - 手续费 = `ceil(字节数 / 1000) × feePerKb`，`feePerKb` 取 `/v4/info/dogegas` 的 `medium_fee_per_kb`，与发送页一致。找零低于 dust 时并入手续费（与 bitcore 路径一致）。金额低于 dust 返回 `BAD_REQUEST`。
+   - 结果在内存里保留 5 分钟，只有同一个 agent 能提交，提交一次即作废；`policy` 是按当前账本做的预判，不是承诺。
+2. `send.submit` 重新检查（inspector + PolicyEngine），然后：
+   - `ALLOW`：签名 → 写账本（预占）→ 广播 → 发通知。
+   - `DENY`（没有 Grant、已撤销 / 过期、操作不在范围内）：直接返回 `DENIED`，不弹窗。
+   - `ESCALATE`（超单笔、超 24h、收款方不在白名单、有 warning）：弹审批窗，写明超出授权的原因，要求输入密码；agent 的这次调用一直挂着，直到用户批准、拒绝、关窗（`DENIED`）或 5 分钟到（`TIMEOUT`）。同一时间只有一个审批，其余返回 `BUSY`。
+3. 「评估 → 签名 → 写账本 → 广播」在一个串行队列里，并发请求不会合起来超额。
 
 **配对（D7）**：
 
@@ -103,3 +122,8 @@
 - **`expiresAt`**：按 JS 毫秒时间戳理解（MCP 输出里附带 `expiresAtIso`）。
 - **名字 1–40 字符**：按 Unicode 码点计数，先去掉首尾空白，不允许控制字符；`pair` 默认名 `dogeuni-mcp`。
 - **配对等待**：MCP 侧等 5 分 15 秒，让扩展的 `TIMEOUT` 先到。
+- **转账工具（P2c）**：`quote_fee` / `prepare_send` → `fee.quote` / `send.prepare`，params 只有 `{to, amount}`；`submit_send` → `send.submit`，params 只有 `{prepareId}`。params 由工具参数重新构造，不透传，多余参数不会发出去。输入在 MCP 侧先校验：`to` 是 base58（25–64 位），`amount` 匹配 `^\d+(\.\d{1,8})?$`，`prepareId` 1–128 字符；不合格直接报错，不连 socket。
+- **等待时间**：`send.submit` 等 6 分钟（扩展的审批最多 5 分钟，让扩展的 `TIMEOUT` 先到）；其他方法仍是 30 秒。客户端带了 `progressToken` 时，等待期间每 15 秒发一次 `notifications/progress`，方便客户端重置自己的超时。
+- **结果未知**：`send.submit` 的请求发出后连接断开、超时或应答格式不对时，工具报错并提示“可能已经发出，先查余额或链上再重试”；没连上 socket 时（请求没发出去）仍按“请先开始 agent 会话”处理。
+- **应答校验**：`fee` / `feePerKb` / `amount` 必须是 DOGE 十进制字符串（`feePerKb` 是数字也算格式不对）；`txid` 是 64 位小写 hex；`decision` 只认 `ALLOW` / `ESCALATE` / `DENY`，`approvedBy` 只认 `grant` / `user`；`prepareId` 必须匹配 `^[A-Za-z0-9._:-]{1,128}$`。`reasons` 里不像原因码（`^[A-Za-z0-9_.:-]{1,64}$`）的字符串包进 `untrusted_data`。未知字段丢弃。
+- **错误 message**：`DENIED` 和 `BAD_REQUEST` 把扩展给的 message 附在后面（控制字符换成空格，最多 300 字符）；其他错误码只用固定文案。

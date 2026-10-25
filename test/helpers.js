@@ -146,8 +146,8 @@ export function connectClient(sockPath) {
 }
 
 /**
- * Fake host peer on the socket: `handler(req)` returns the reply object (without id)
- * or undefined for no reply.
+ * Fake host peer on the socket: `handler(req)` returns the reply object (without id),
+ * undefined for no reply, or 'close' to drop the connection without replying.
  */
 export function fakeSocketPeer(sockPath, handler) {
   const requests = [];
@@ -161,7 +161,8 @@ export function fakeSocketPeer(sockPath, handler) {
         buf = buf.slice(nl + 1);
         requests.push(req);
         const reply = await handler(req);
-        if (reply !== undefined) s.write(JSON.stringify({ id: req.id, ...reply }) + '\n');
+        if (reply === 'close') s.destroy();
+        else if (reply !== undefined) s.write(JSON.stringify({ id: req.id, ...reply }) + '\n');
       }
     });
     s.on('error', () => {});

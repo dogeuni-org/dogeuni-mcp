@@ -2,7 +2,7 @@
 import { dogeuniHome } from '../src/paths.js';
 import { VERSION } from '../src/version.js';
 
-const USAGE = `dogeuni-mcp ${VERSION}: MCP server for the DogeUni wallet agent (read-only)
+const USAGE = `dogeuni-mcp ${VERSION}: MCP server for the DogeUni wallet agent
 
 Usage:
   dogeuni-mcp [serve]                    Run the MCP server on stdio (default)
