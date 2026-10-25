@@ -1,0 +1,73 @@
+# Publishes a tagged version to npm with provenance and attaches the same tarball and its SHA-256 to a
+# GitHub Release. Runs on a v* tag only, and the publish job waits for a reviewer on the `npm`
+# environment. Checklist and one-time setup: RELEASING.md.
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write # the GitHub Release
+      id-token: write # npm trusted publishing and provenance (OIDC)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install -g npm@11.21.1
+      - name: The tag names the package version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          test "v$VERSION" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, package.json $VERSION"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - run: npm ci
+      - name: Pack once; npm and the Release get this same file
+        run: |
+          npm pack
+          sha256sum "dogeuni-mcp-$VERSION.tgz" > SHA256SUMS
+          cat SHA256SUMS
+      # --provenance makes the publish fail rather than go out without an attestation (a private repository
+      # cannot have one). NODE_AUTH_TOKEN is only for the first publish; see RELEASING.md.
+      - run: npm publish "dogeuni-mcp-$VERSION.tgz" --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: npm serves the tarball that was packed
+        run: |
+          LOCAL=$(node -e "const c=require('crypto');console.log('sha512-'+c.createHash('sha512').update(require('fs').readFileSync(process.argv[1])).digest('base64'))" "dogeuni-mcp-$VERSION.tgz")
+          for i in 1 2 3 4 5 6; do
+            REMOTE=$(npm view "dogeuni-mcp@$VERSION" dist.integrity 2>/dev/null || true)
+            [ -n "$REMOTE" ] && break
+            sleep 10
+          done
+          test "$LOCAL" = "$REMOTE" || { echo "local $LOCAL, npm $REMOTE"; exit 1; }
+      - name: GitHub Release with the same tarball
+        run: |
+          gh release create "$GITHUB_REF_NAME" "dogeuni-mcp-$VERSION.tgz" SHA256SUMS --verify-tag \
+            --title "dogeuni-mcp $VERSION" \
+            --notes "npm: https://www.npmjs.com/package/dogeuni-mcp/v/$VERSION · verify: see RELEASING.md"
+        env:
+          GH_TOKEN: ${{ github.token }}
