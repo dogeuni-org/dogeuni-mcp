@@ -8,8 +8,8 @@
 | # | 项 | 现状 | 谁来做 |
 |---|---|---|---|
 | 1 | **仓库可见性**：npm provenance 只给公开仓库签发；私有仓库带 `--provenance` 发布会直接失败（workflow 故意这样，避免无 attestation 发出去） | `dogeuni-org/dogeuni-mcp` 是 **PRIVATE** | 维护者决定是否公开（GitHub Settings → Visibility）。不公开就只能放弃 provenance，需要改 workflow 并改 README/设计文档里的承诺 |
-| 2 | **钱包先上架**：MCP 只有在钱包实现了 agent 协议（P2a–P2c）时才有用 | 商店版是 1.4.19，不含 P2 | 先发一个带 P2 的钱包版本（设置页仍不挂入口），等 CWS 上线 |
-| 3 | **最低钱包版本**：README 写明「需要 DogeUni Wallet ≥ x.y.z」 | README 只写了 Node / 系统 / Chrome | 第 2 项版本号确定后补 |
+| 2 | **钱包先上架**：MCP 只有在钱包实现了 agent 协议（P2a–P2c）时才有用 | 1.4.20（含 P2，无设置页入口）已建 GitHub Release（2026-10-26），待 CWS 上线 | 先发一个带 P2 的钱包版本（设置页仍不挂入口），等 CWS 上线 |
+| 3 | **最低钱包版本**：README 写明「需要 DogeUni Wallet ≥ x.y.z」 | ✅ README 已写「DogeUni Wallet 1.4.20 or later」（2026-10-26）。1.4.20 实现了协议，但设置页没有 Agent 入口，用户要等挂入口的版本才能开会话；首发应与那个版本同步 | — |
 | 4 | **钱包文案与 README 矛盾**：README 要求 `npm install -g`（`npx` 的缓存路径可能被清理，host 会断），钱包 Agent 页和 P2 计划仍写 `npx dogeuni-mcp install` / `npx dogeuni-mcp pair` | ✅ 钱包 main 已改为 `npm install -g dogeuni-mcp` + `dogeuni-mcp install` / `dogeuni-mcp pair`（2026-10-25） | 随下一个钱包版本发出 |
 
 ## 一次性设置
