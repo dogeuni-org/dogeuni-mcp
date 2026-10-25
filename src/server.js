@@ -73,6 +73,8 @@ function errorText(code, method) {
   switch (code) {
     case 'UNAUTHORIZED':
       return `The wallet does not accept this agent's token (not paired, or the pairing was revoked). ${MSG_NOT_PAIRED}`;
+    case 'NO_SESSION':
+      return MSG_NOT_RUNNING;
     case 'UNKNOWN_METHOD':
       return `This wallet version does not support ${method}. Update the DogeUni wallet extension.`;
     case 'BAD_REQUEST':

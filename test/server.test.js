@@ -98,6 +98,9 @@ test('wallet errors and malformed replies become tool errors', async () => {
   assert.match(text(r), /not paired, or the pairing was revoked/);
   assert.ok(text(r).includes(MSG_NOT_PAIRED));
 
+  reply = { error: { code: 'NO_SESSION', message: 'No agent session' } };
+  assert.equal(text(await call(client, 'get_agent_account')), MSG_NOT_RUNNING);
+
   reply = { error: { code: 'INTERNAL' } };
   assert.equal(text(await call(client, 'get_agent_account')), 'The wallet returned an error: INTERNAL.');
 

@@ -37,8 +37,9 @@
 | `UNAUTHORIZED` | 没带 token，或 token 未配对 / 已撤销 |
 | `UNKNOWN_METHOD` | 没有这个方法 |
 | `BUSY` | 已有一个配对在等确认 |
-| `DENIED` | 用户拒绝，或关掉了确认窗 |
+| `DENIED` | 用户拒绝、关掉了确认窗、agent 断开，或已配对满 5 个 |
 | `TIMEOUT` | 5 分钟内没有确认 |
+| `NO_SESSION` | 调用时 agent 会话已经结束（正常情况下会话一结束 host 就退出了） |
 | `INTERNAL` | 其他错误，message 里不带细节 |
 
 **方法（P2b 只有只读和配对）**：
@@ -56,7 +57,7 @@
    - 配对码 = `SHA-256("dogeuni-agent-pair:" + token)` 前 4 字节，按大端读成 uint32，对 10⁶ 取模，补零到 6 位。
 2. 扩展用同样的算法算出配对码，弹出确认窗，显示 agent 名和配对码，要求输入密码。
    - 同一时间只允许一个配对，其余请求返回 `BUSY`。
-3. 用户确认后，扩展只保存 `{agentId, name, tokenHash: SHA-256(token) 的 hex, createdAt}`，最多 5 个。
+3. 确认窗在钱包锁定时也能用，因为 agent 会话不随自动锁定结束（D2）。用户确认后，扩展只保存 `{agentId, name, tokenHash: SHA-256(token) 的 hex, createdAt}`，最多 5 个。
 4. MCP 把 token 写入 `~/.dogeuni/credentials.json`，权限 0600。
 
 撤销立即生效，下一次调用返回 `UNAUTHORIZED`。以下情况会清空全部已配对的 agent：agent 账户被删除，或钱包被重置。
@@ -66,14 +67,15 @@
 - `NativeMessagingHosts/com.dogeuni.agent.json`：`allowed_origins` 只填这一个 id，`path` 指向下面的启动脚本。
 - `~/.dogeuni/host`：0755 的 sh 脚本，内容是 `exec "<node 绝对路径>" "<host.js 绝对路径>"`。
 
+**测试向量**：token `AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8`（即字节 0x00–0x1f）对应的配对码是 `663428`，两个仓库的测试都要断言它。`expiresAt` 是毫秒时间戳。
+
 **扩展侧连接**：
 
 - agent 会话开始时，以及 SW 启动时如果 session 还在，扩展调用 `connectNative`；会话结束时断开，host 随之退出。
 - 前提是已经拿到 `nativeMessaging` 权限（在页面里点「开始 agent 会话」时申请）。
 - host 断开后不自动重连，状态显示为 `disconnected`，由用户点「重新连接」。
-- 状态共有四种：`connected`、`no-permission`、`host-missing`、`disconnected`。
-
----
+- 状态共有四种：`off`（没有会话）、`no-permission`、`connected`、`disconnected`。
+  - `disconnected` 附带 Chrome 给出的原因（host 没装、被拒绝或已退出），扩展不去解析这段文字。
 
 ## 测试向量（dogeuni-mcp 侧追加，扩展侧应断言同样的值）
 
