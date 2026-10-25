@@ -1,0 +1,25 @@
+{
+  "name": "dogeuni-mcp",
+  "version": "0.1.0",
+  "description": "MCP server and Chrome native-messaging host for the DogeUni wallet agent (read-only, P2b)",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "dogeuni-mcp": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "docs/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2"
+  }
+}
