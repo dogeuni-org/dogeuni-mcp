@@ -1,5 +1,5 @@
 export const MSG_NOT_RUNNING = 'Start an agent session in the DogeUni wallet first.';
-export const MSG_NOT_PAIRED = 'Pair first: run `npx dogeuni-mcp pair`.';
+export const MSG_NOT_PAIRED = 'Pair first: run `dogeuni-mcp pair`.';
 
 // Spending (P2c).
 export const MSG_INSUFFICIENT_FUNDS =
