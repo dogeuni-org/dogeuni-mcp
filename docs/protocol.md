@@ -1,6 +1,6 @@
 # P2 protocol (extension ⇄ host ⇄ MCP)
 
-> Copied verbatim from `dogeuni-wallet/docs/ai-wallet-p2-plan.md` §2.1 (2026-10-25, includes P2c). That section is the source of truth; change both repos together. `v` changes only when the message format changes; new methods and error codes do not bump it.
+> Copied verbatim from `dogeuni-wallet/docs/ai-wallet-p2-plan.md` §2.1 (2026-10-26, includes P2c and the host's hello). That section is the source of truth; change both repos together. `v` changes only when the message format changes; new methods and error codes do not bump it.
 > The "Test vectors" and "Implementation notes" sections at the end are added here (dogeuni-mcp side) and are not part of the copied text.
 
 ### 2.1 协议（扩展 ⇄ host ⇄ MCP 的契约，P2b 建立，P2c 增加转账）
@@ -26,6 +26,7 @@
 - host → 扩展：
   - `{"v":1,"type":"call","conn":C,"id":N,"token":…,"method":…,"params":…}`。`conn` 是 host 给每条 socket 连接分配的正整数。
   - `{"v":1,"type":"closed","conn":C}`：这条连接断了，扩展取消它挂着的配对请求。
+  - `{"v":1,"type":"hello","version":"<dogeuni-mcp 版本>"}`（2026-10-26 加）：host 开始监听后、转发任何 `call` 之前发一次。扩展只拿它在 Agent 页显示 helper 版本，不据此做任何判断；`version` 不是 `1.2.3` 或 `1.2.3-beta.1` 这种形式就丢弃。它没有 `conn`，1.4.21 之前的扩展会当作不合格消息丢弃，所以不加 `v`。
 - 扩展 → host：`{"v":1,"type":"result","conn":C,"id":N,"result":…}` 或 `{"v":1,"type":"error","conn":C,"id":N,"error":{"code","message"}}`。
 - 扩展收到任何不合格式的消息都丢弃，不回复。
 
@@ -81,7 +82,7 @@
 
 撤销立即生效，下一次调用返回 `UNAUTHORIZED`。以下情况会清空全部已配对的 agent：agent 账户被删除，或钱包被重置。
 
-**安装**：`npx dogeuni-mcp install [--extension-id <id>]`，默认 id 为商店版 `mfdcchljfhgjjpmlnplfdeianllkempb`。它会写两个文件：
+**安装**：全局安装（`npm install -g dogeuni-mcp`）后运行 `dogeuni-mcp install [--extension-id <id>]`，默认 id 为商店版 `mfdcchljfhgjjpmlnplfdeianllkempb`。它会写两个文件：
 
 - `NativeMessagingHosts/com.dogeuni.agent.json`：`allowed_origins` 只填这一个 id，`path` 指向下面的启动脚本。
 - `~/.dogeuni/host`：0755 的 sh 脚本，内容是 `exec "<node 绝对路径>" "<host.js 绝对路径>"`。
@@ -94,6 +95,7 @@
 - 前提是已经拿到 `nativeMessaging` 权限（在页面里点「开始 agent 会话」时申请）。
 - host 断开后不自动重连，状态显示为 `disconnected`，由用户点「重新连接」。
 - 状态共有四种：`off`（没有会话）、`no-permission`、`connected`、`disconnected`。
+  - `connected` 收到 hello 后带上 `helperVersion`；每次重新连接都清空，等新的 hello。
   - `disconnected` 附带 Chrome 给出的原因（host 没装、被拒绝或已退出），扩展不去解析这段文字。
 
 ## 测试向量（dogeuni-mcp 侧追加，扩展侧应断言同样的值）

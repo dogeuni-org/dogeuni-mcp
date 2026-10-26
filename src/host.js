@@ -9,6 +9,7 @@ import net from 'node:net';
 import { MessageDecoder, encodeMessage } from './framing.js';
 import { LineSplitter, isId, isPlainObject } from './lines.js';
 import { dogeuniHome, ensureHomeDir, socketPath } from './paths.js';
+import { VERSION } from './version.js';
 
 const BAD_REQUEST_LINE = JSON.stringify({ id: null, error: { code: 'BAD_REQUEST' } }) + '\n';
 
@@ -122,6 +123,10 @@ export async function runHost({ home = dogeuniHome() } = {}) {
     process.stdout.write(frame);
     return true;
   };
+
+  // Before any call: nothing has run since the listen resolved, so no connection is handled yet. The wallet
+  // only displays the version.
+  toChrome({ v: 1, type: 'hello', version: VERSION });
 
   server.on('connection', (socket) => {
     if (shuttingDown) return socket.destroy();

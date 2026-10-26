@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { MAX_INBOUND } from '../src/framing.js';
+import { VERSION } from '../src/version.js';
 import { canConnect, connectClient, makeStaleSocket, startHost, tmpHome } from './helpers.js';
 
 const TOKEN = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8';
@@ -28,8 +29,23 @@ test('socket is 0600 and the directory is forced to 0700', async () => {
   assert.equal(st.mode & 0o777, 0o600);
 });
 
+test('says hello with the package version before anything else', async () => {
+  const { sock, host } = await setup();
+  const c = await connectClient(sock);
+  c.send({ id: 1, token: TOKEN, method: 'wallet.status', params: {} });
+  c.send({ id: 2, token: TOKEN, method: 'wallet.status', params: {} });
+  assert.deepEqual(await host.fromHost.next(), { v: 1, type: 'hello', version: VERSION });
+  assert.equal((await host.fromHost.next()).id, 1);
+  assert.equal((await host.fromHost.next()).id, 2);
+  assert.equal(host.fromHost.items.filter((m) => m.type === 'hello').length, 0);
+  // The wallet drops a version that isn't 1.2.3 or 1.2.3-tag.
+  assert.match(VERSION, /^\d{1,9}\.\d{1,9}\.\d{1,9}(-[0-9A-Za-z.-]{1,32})?$/);
+  c.close();
+});
+
 test('forwards calls with conn/id; pair.request goes without token', async () => {
   const { sock, host } = await setup();
+  assert.deepEqual(await host.fromHost.next(), { v: 1, type: 'hello', version: VERSION });
   const c = await connectClient(sock);
   c.send({ id: 7, token: TOKEN, method: 'wallet.status', params: {} });
   const call = await host.fromHost.next();

@@ -41,5 +41,4 @@ npm audit signatures                                # 在装了 dogeuni-mcp 的�
 
 ## 不在本清单范围
 
-- 钱包「已连接的 agent」页显示 MCP 版本：未做（设计文档 §4.4）。
 - 设置页挂 Agent 入口：npm 发布之后的钱包版本做。
