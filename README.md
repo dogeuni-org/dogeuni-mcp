@@ -99,7 +99,7 @@ Requirements: DogeUni Wallet 1.4.21 or later (the first version with Settings â†
    }
    ```
 
-If no session is running, tools answer "Start an agent session in the DogeUni wallet first."
+If no session is running, tools answer "Start an agent session in the DogeUni wallet first (Settings â†’ Agent account)."
 Without credentials they answer "Pair first: run `dogeuni-mcp pair`."
 
 `DOGEUNI_HOME` overrides `~/.dogeuni` (socket, credentials, launcher).

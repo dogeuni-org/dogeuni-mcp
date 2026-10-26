@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { after, test } from 'node:test';
+import { MSG_NOT_RUNNING } from '../src/messages.js';
 import { TOKEN_RE, pairingCode } from '../src/pairing.js';
 import { CLI_BIN, fakeSocketPeer, tmpHome } from './helpers.js';
 
@@ -72,7 +73,7 @@ test('pair: no host running', async () => {
   const { home } = setup();
   const r = await runCli(home, ['pair']);
   assert.equal(r.code, 1);
-  assert.match(r.stderr, /Start an agent session in the DogeUni wallet first\./);
+  assert.ok(r.stderr.includes(MSG_NOT_RUNNING), r.stderr);
 });
 
 test('pair: invalid --name is refused before contacting the wallet', async () => {
