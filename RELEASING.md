@@ -7,7 +7,7 @@
 
 | # | 项 | 现状 | 谁来做 |
 |---|---|---|---|
-| 1 | **仓库可见性**：npm provenance 只给公开仓库签发；私有仓库带 `--provenance` 发布会直接失败（workflow 故意这样，避免无 attestation 发出去） | `dogeuni-org/dogeuni-mcp` 是 **PRIVATE**。公开前的历史扫描（2026-10-26，全部 7 个 commit + 工作区，gitleaks 8.30.1 + 私钥 / WIF / 助记词 / token / 本机路径的补充 grep）：无密钥。gitleaks 的 3 条 `generic-api-key` 都是测试向量（字节 0x00..0x1f 的 base64url）。公开后可见的只有提交者邮箱 `<用户名>@<主机名>.local` | 维护者决定是否公开（GitHub Settings → Visibility）。不公开就只能放弃 provenance，需要改 workflow 并改 README/设计文档里的承诺 |
+| 1 | **仓库可见性**：npm provenance 只给公开仓库签发；私有仓库带 `--provenance` 发布会直接失败（workflow 故意这样，避免无 attestation 发出去） | **决定公开**（2026-10-26），仍是 PRIVATE。公开前扫描（2026-10-26，全部 13 个 commit + 工作区，gitleaks 8.30.1 + 私钥 / WIF / 助记词 / token / 本机路径 / 内网 IP 的补充 grep）：无密钥；gitleaks 的 3 条 `generic-api-key` 都是 800bfa5 的测试向量（字节 0x00..0x1f 的 base64url）。公开后可见的个人信息只有提交者邮箱 `<用户名>@<主机名>.local`（本机没设 `user.email`，git 用了 用户名@主机名） | 维护者：先定邮箱（保留，或公开前改写历史为 GitHub noreply 并设好 `user.email`），再切 Visibility，然后在仓库设置里打开 secret scanning + push protection、private vulnerability reporting，给 `main` 加禁止 force push / 删除的 ruleset，给 `v*` tag 加只允许维护者创建的 ruleset |
 | 2 | **钱包先上架**：MCP 只有在钱包实现了 agent 协议（P2a–P2c）时才有用 | 1.4.20（含 P2，无设置页入口）已建 GitHub Release（2026-10-26），待 CWS 上线 | 先发一个带 P2 的钱包版本（设置页仍不挂入口），等 CWS 上线 |
 | 3 | **最低钱包版本**：README 写明「需要 DogeUni Wallet ≥ x.y.z」 | ✅ README 写「DogeUni Wallet 1.4.21 or later」，入口写成「Settings → Agent account」（2026-10-26）。1.4.20 已实现协议但没有设置页入口；npm 先发、1.4.21 后上架的顺序见钱包 `docs/ai-wallet-p2-plan.md` §6 | — |
 | 4 | **钱包文案与 README 矛盾**：README 要求 `npm install -g`（`npx` 的缓存路径可能被清理，host 会断），钱包 Agent 页和 P2 计划仍写 `npx dogeuni-mcp install` / `npx dogeuni-mcp pair` | ✅ 钱包 main 已改为 `npm install -g dogeuni-mcp` + `dogeuni-mcp install` / `dogeuni-mcp pair`（2026-10-25） | 随下一个钱包版本发出 |

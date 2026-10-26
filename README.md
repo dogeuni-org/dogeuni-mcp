@@ -33,7 +33,7 @@ milliseconds). The server sends progress notifications while it waits when the c
 
 The wire protocol is in [docs/protocol.md](docs/protocol.md) (copied from the wallet repo's plan, §2.1).
 
-Requirements: DogeUni Wallet 1.4.21 or later (the first version with Settings → Agent account); Node.js 18 or later; macOS or Linux; Google Chrome.
+Requirements: DogeUni Wallet 1.4.21 or later (the first version with Settings → Agent account); Node.js 20 or later; macOS or Linux; Google Chrome.
 
 ## Setup
 

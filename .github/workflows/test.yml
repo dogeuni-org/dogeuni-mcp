@@ -1,5 +1,6 @@
-# Runs the tests on Linux and macOS for every push to main and every pull request. publish.yml calls it
-# too, so a release is tested the same way.
+# Runs the tests on Linux and macOS, on the oldest Node that package.json allows (20: @hono/node-server,
+# which the MCP SDK depends on, needs it) and on current LTS, for every push to main and every pull
+# request. publish.yml calls it too, so a release is tested the same way.
 name: Test
 
 on:
@@ -16,11 +17,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        node: [20, 22, 24]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
       - run: npm ci
       - run: npm test
