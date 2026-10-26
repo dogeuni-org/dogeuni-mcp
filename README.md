@@ -33,7 +33,7 @@ milliseconds). The server sends progress notifications while it waits when the c
 
 The wire protocol is in [docs/protocol.md](docs/protocol.md) (copied from the wallet repo's plan, §2.1).
 
-Requirements: DogeUni Wallet 1.4.20 or later; Node.js 18 or later; macOS or Linux; Google Chrome.
+Requirements: DogeUni Wallet 1.4.21 or later (the first version with Settings → Agent account); Node.js 18 or later; macOS or Linux; Google Chrome.
 
 ## Setup
 
@@ -64,7 +64,9 @@ Requirements: DogeUni Wallet 1.4.20 or later; Node.js 18 or later; macOS or Linu
 
    `dogeuni-mcp uninstall [--hosts-dir <dir>]` removes both files and leaves `credentials.json`.
 
-3. **Start an agent session** in the DogeUni wallet (Agent page → start session). Chrome launches the
+3. **Start an agent session** in the DogeUni wallet: Settings → Agent account. Create the agent account
+   and fund it if you haven't, then choose a duration, enter your password and start the session. The
+   first time, Chrome asks for permission to "communicate with cooperating native applications". Chrome launches the
    host; it exits when the session ends.
 
 4. **Pair:**
