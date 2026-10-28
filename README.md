@@ -14,14 +14,14 @@ Claude Code ─stdio─► dogeuni-mcp serve ─unix socket (~/.dogeuni/agent.so
   It only forwards; all authentication happens in the extension.
 
 The agent spends only from the wallet's dedicated agent account, never from your main accounts.
-Recipients and limits (per transaction, rolling 24h) are set by you in the wallet's grant, and the
-wallet enforces them:
+Recipients and limits (per transaction, rolling 24h) are set by you in the wallet's allowance for the
+agent, and the wallet enforces them:
 
 | Tool | What it does |
 |---|---|
 | `quote_fee {to, amount}` | Fee for a send. Does not spend. |
 | `prepare_send {to, amount}` | Builds the send without signing it. Returns a `prepareId` (valid 5 minutes, usable once) and a policy preview: `ALLOW` = sends without asking, `ESCALATE` = you will be asked to approve, `DENY` = will be refused. |
-| `submit_send {prepareId}` | Signs and broadcasts. Within the grant it goes out at once; otherwise the wallet opens an approval window and the call waits up to 5 minutes for your answer. |
+| `submit_send {prepareId}` | Signs and broadcasts. Within the allowance it goes out at once; otherwise the wallet opens an approval window and the call waits up to 5 minutes for your answer. |
 
 Amounts are DOGE decimal strings with at most 8 decimals. If `submit_send` reports `BROADCAST_FAILED`,
 the transaction was signed and may still have gone out; the agent is told not to retry without
@@ -33,7 +33,7 @@ milliseconds). The server sends progress notifications while it waits when the c
 
 The wire protocol is in [docs/protocol.md](docs/protocol.md) (copied from the wallet repo's plan, §2.1).
 
-Requirements: DogeUni Wallet 1.4.21 or later (the first version with Settings → Agent account); Node.js 20 or later; macOS or Linux; Google Chrome.
+Requirements: DogeUni Wallet 1.4.21 or later (the first version with Settings → Agent account); Node.js 20 or later; macOS or Linux; Google Chrome 102 or later.
 
 ## Setup
 
@@ -65,9 +65,9 @@ Requirements: DogeUni Wallet 1.4.21 or later (the first version with Settings �
    `dogeuni-mcp uninstall [--hosts-dir <dir>]` removes both files and leaves `credentials.json`.
 
 3. **Start an agent session** in the DogeUni wallet: Settings → Agent account. Create the agent account
-   and fund it if you haven't, then choose a duration, enter your password and start the session. The
-   first time, Chrome asks for permission to "communicate with cooperating native applications". Chrome launches the
-   host; it exits when the session ends.
+   if you haven't, then choose a duration (1, 8 or 24 hours), enter your password and start the session.
+   The first time, Chrome asks for permission to "communicate with cooperating native applications".
+   Chrome launches the host; it exits when the session ends.
 
 4. **Pair:**
 
@@ -80,7 +80,12 @@ Requirements: DogeUni Wallet 1.4.21 or later (the first version with Settings �
    saved to `~/.dogeuni/credentials.json` (mode 0600). The wallet waits up to 5 minutes. Only one
    pairing can wait at a time.
 
-5. **Add the server to Claude Code:**
+5. **Set the allowance and add funds** in the same wallet page. The allowance is what this agent may send
+   without asking: a list of recipient addresses, a per-transaction limit and a rolling 24h limit. A send
+   inside all three goes out at once; any other send asks you. With no allowance, every send is refused.
+   Then send DOGE to the agent account; it holds at most 1000 DOGE.
+
+6. **Add the server to Claude Code:**
 
    ```sh
    claude mcp add dogeuni -- dogeuni-mcp serve
