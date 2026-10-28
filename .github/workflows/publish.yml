@@ -48,7 +48,8 @@ jobs:
       - name: npm serves the tarball that was packed
         run: |
           LOCAL=$(node -e "const c=require('crypto');console.log('sha512-'+c.createHash('sha512').update(require('fs').readFileSync(process.argv[1])).digest('base64'))" "dogeuni-mcp-$VERSION.tgz")
-          for i in 1 2 3 4 5 6; do
+          # A new package can take minutes to show up (0.1.0 was not there after 60 s): wait up to 10 minutes.
+          for i in $(seq 60); do
             REMOTE=$(npm view "dogeuni-mcp@$VERSION" dist.integrity 2>/dev/null || true)
             [ -n "$REMOTE" ] && break
             sleep 10
