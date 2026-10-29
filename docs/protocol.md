@@ -40,7 +40,7 @@
 | `BUSY` | 已有一个配对在等确认，或已有一笔转账在等审批 |
 | `DENIED` | 用户拒绝、关掉了确认窗、agent 断开，或已配对满 5 个；转账被策略拒绝（message 里列出原因码），或审批被拒 |
 | `TIMEOUT` | 5 分钟内没有确认（配对或转账审批） |
-| `INSUFFICIENT_FUNDS` | agent 账户的可用 UTXO 不够付金额 + 手续费 |
+| `INSUFFICIENT_FUNDS` | agent 账户的可用 UTXO 不够付金额 + 手续费；message 写明没算进来的钱：刚广播的交易找零还没被 UTXO 接口列出、在等审批的那笔、其他 agent 的 prepare（释放时间） |
 | `BROADCAST_FAILED` | 交易已签名，广播被节点拒绝或请求失败；额度不释放，交易可能已经发出，agent 不要直接重试 |
 | `NO_SESSION` | 调用时 agent 会话已经结束（正常情况下会话一结束 host 就退出了） |
 | `INTERNAL` | 其他错误，message 里不带细节 |
