@@ -1,7 +1,7 @@
 # 发布清单（npm + GitHub Release）
 
 > 不在 npm 包里（`files` 只带 `bin/ src/ docs/ README.md`）。发布由 `.github/workflows/publish.yml` 在推送 `v*` tag 时执行：两个系统上跑测试 → 等 `npm` environment 的审批人批准 → `npm pack` 一次 → 带 provenance 发布**这个 tarball** → 核对 npm 上的 integrity 与本地一致 → 把同一个 tarball 和 `SHA256SUMS` 挂到 GitHub Release。
-> 状态（2026-10-25）：**未发布**。下面「阻断项」未清零前不要推 tag。
+> 状态（2026-10-29）：0.1.0 已发布（2026-10-28，首发用 `NPM_TOKEN`）。0.1.1 起走 trusted publishing：推 tag 前「一次性设置」第 4 项要做完（按第 3 项，首发 token 只给 1 天有效期）。
 
 ## 阻断项
 
@@ -34,11 +34,11 @@
    E2E_BROWSER=chrome E2E_REAL_HOST=../dogeuni-mcp node tests/e2e/agent-gateway.e2e.js
    E2E_BROWSER=chrome E2E_REAL_HOST=../dogeuni-mcp node tests/e2e/agent-spend.e2e.js
    ```
-   - 全部通过：0.1.0 时 agent-gateway 43/43（需要替身注入畸形消息的 3 项自动跳过）、agent-spend 66/66。
+   - 全部通过：0.1.0 时 agent-gateway 43/43（需要替身注入畸形消息的 3 项自动跳过）、agent-spend 66/66；0.1.1 时（钱包 1.4.22 之后的 main eec4309）agent-gateway 74/74、agent-spend 87/87。
    - 每次开头打印 `real host: … <version>, installed by dogeuni-mcp install (launcher …)`，版本应是第 2 步改后的版本；`hello` 的版本检查也用它。
    - host 由 `dogeuni-mcp install --extension-id <测试扩展> --hosts-dir <临时 profile>` 安装，Chrome 原样启动生成的 manifest 和 launcher；`DOGEUNI_HOME` 是临时目录。不碰 `~/.dogeuni`，也不碰真实 Chrome 的 NativeMessagingHosts 目录。广播全部被拦截，没有真实资金。
    - 只测了 `--hosts-dir` 指定目录的情况；不带 `--hosts-dir` 写进默认目录的那条路，留给发布后的冒烟测试（钱包 `ai-wallet-p2-plan.md` §6 第 7 步）。
-4. `npm pack --dry-run`：只应有 `bin/ src/ docs/ README.md LICENSE package.json`（0.1.0 时 18 个文件、24.3 kB，2026-10-26 加 hello 之后）。
+4. `npm pack --dry-run`：只应有 `bin/ src/ docs/ README.md LICENSE package.json`（0.1.0 时 18 个文件、24.3 kB，2026-10-26 加 hello 之后；0.1.1 时 18 个文件、25.1 kB）。
 5. 提交，打 tag：`git tag v<version>` → `git push origin main v<version>`。
 6. 在 Actions 里批准 `npm` environment；workflow 会：发布 → 核对 `dist.integrity` → 建 Release（tarball + `SHA256SUMS`）。
 7. 发布后在 npm 页面确认有 Provenance 标记，并按下面「用户如何校验」走一遍。
