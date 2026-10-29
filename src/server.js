@@ -116,7 +116,7 @@ const TOOLS = {
   prepare_send: {
     method: 'send.prepare',
     description:
-      'Build (but do not sign or send) a DOGE send from the agent account. Does not spend. Returns a `prepareId` for submit_send, valid until `expiresAt` (5 minutes) and usable once. ' +
+      'Build (but do not sign or send) a DOGE send from the agent account. Does not spend. Returns a `prepareId` for submit_send, valid until `expiresAt` (5 minutes) and usable once; a later prepare_send that needs its coins replaces it (submit only the latest one). ' +
       '`policy` is a preview of what submit_send will do under the grant the user set in the wallet: ALLOW = sends without asking, ESCALATE = the user will be asked to approve, DENY = will be refused. ' +
       '`reasons` lists why. Recipients and limits are set by the user in the wallet; the agent cannot change them.',
     input: { to: toInput, amount: amountInput },
@@ -185,7 +185,8 @@ function errorText({ code, message }, method) {
     case 'BAD_REQUEST':
       return `The wallet rejected the request as malformed (BAD_REQUEST).${walletMessage(message)}`;
     case 'INSUFFICIENT_FUNDS':
-      return MSG_INSUFFICIENT_FUNDS;
+      // The wallet says what it left out (change not listed yet, a payment awaiting approval): funds that come back.
+      return `${MSG_INSUFFICIENT_FUNDS}${walletMessage(message)}`;
     case 'BROADCAST_FAILED':
       return MSG_BROADCAST_FAILED;
     case 'BUSY':

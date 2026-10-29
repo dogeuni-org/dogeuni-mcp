@@ -3,7 +3,7 @@ export const MSG_NOT_PAIRED = 'Pair first: run `dogeuni-mcp pair`.';
 
 // Spending (P2c).
 export const MSG_INSUFFICIENT_FUNDS =
-  'The agent account does not have enough spendable DOGE for the amount plus the fee. Nothing was sent.';
+  'The agent account does not have enough spendable DOGE for the amount plus the fee right now. Nothing was sent. If the wallet message says funds are not counted yet, wait a few minutes and prepare again instead of asking for more funds.';
 export const MSG_BROADCAST_FAILED =
   'The transaction was signed but broadcasting it failed. It may still have reached the network, and the amount stays counted against the 24h limit. Do not retry until you have checked the chain (or the agent balance) for this transaction.';
 export const MSG_BUSY = 'Another send is already waiting for the user in the wallet. Try again after it is resolved.';

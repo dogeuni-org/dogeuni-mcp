@@ -261,7 +261,7 @@ test('spending error codes map to clear messages', async () => {
     assert.equal(r.isError, true);
     return text(r);
   };
-  assert.equal(await submit({ code: 'INSUFFICIENT_FUNDS', message: 'x' }), MSG_INSUFFICIENT_FUNDS);
+  assert.equal(await submit({ code: 'INSUFFICIENT_FUNDS', message: 'x' }), `${MSG_INSUFFICIENT_FUNDS} Wallet message: x`);
   assert.equal(await submit({ code: 'BROADCAST_FAILED', message: 'node said no' }), MSG_BROADCAST_FAILED);
   assert.match(MSG_BROADCAST_FAILED, /Do not retry/);
   assert.equal(await submit({ code: 'BUSY' }), MSG_BUSY);
