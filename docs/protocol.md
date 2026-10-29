@@ -40,7 +40,7 @@
 | `BUSY` | 已有一个配对在等确认，或已有一笔转账在等审批 |
 | `DENIED` | 用户拒绝、关掉了确认窗、agent 断开，或已配对满 5 个；转账被策略拒绝（message 里列出原因码），或审批被拒 |
 | `TIMEOUT` | 5 分钟内没有确认（配对或转账审批） |
-| `INSUFFICIENT_FUNDS` | agent 账户的可用 UTXO 不够付金额 + 手续费；message 写明没算进来的钱：刚广播的交易找零还没被 UTXO 接口列出、在等审批的那笔、其他 agent 的 prepare（释放时间） |
+| `INSUFFICIENT_FUNDS` | agent 账户的可用 UTXO 不够付金额 + 手续费；message 写明没算进来的钱：接到 20 笔未确认交易之后的找零（确认后可花）、在等审批的那笔、其他 agent 的 prepare（释放时间） |
 | `BROADCAST_FAILED` | 交易已签名，广播被节点拒绝或请求失败；额度不释放，交易可能已经发出，agent 不要直接重试 |
 | `NO_SESSION` | 调用时 agent 会话已经结束（正常情况下会话一结束 host 就退出了） |
 | `INTERNAL` | 其他错误，message 里不带细节 |
@@ -62,7 +62,7 @@
 **转账（P2c）**：
 
 1. `send.prepare` 在扩展里构造交易，不签名：
-   - 选币：只用 agent 账户的 UTXO，去掉低于 dust（0.01 DOGE）的（铭文都在这类小额 UTXO 上），去掉本会话里已被准备中或已广播的交易占用的；每个输入都取回原始交易并核对 txid，金额和脚本以原始交易为准，不信 UTXO 接口。
+   - 选币：只用 agent 账户的 UTXO，去掉低于 dust（0.01 DOGE）的（铭文都在这类小额 UTXO 上），去掉本会话里已被准备中或已广播的交易占用的（同一个 agent 自己先前 prepare 占用的币不算：可用币不够时新的 prepare 拿走它们，那些旧 prepare 作废，提交时返回 `BAD_REQUEST`）；钱包自己广播成功的交易，找回 agent 账户的那个输出在 UTXO 接口列出之前就能花（原始交易留在内存里，排在已列出的可用币之后、旧 prepare 占用的币之前），但连续未确认的交易到 20 笔（`MAX_CHAIN`，节点 mempool 上限 25）就不再往下接；不够时 `INSUFFICIENT_FUNDS` 的 message 写明没算进来的钱在哪：接到 20 笔未确认的找零（确认后可花）、在等审批的那笔、其他 agent 的 prepare（何时释放）；每个输入都取回原始交易并核对 txid，金额和脚本以原始交易为准，不信 UTXO 接口。
    - 手续费 = `ceil(字节数 / 1000) × feePerKb`，`feePerKb` 取 `/v4/info/dogegas` 的 `medium_fee_per_kb`，与发送页一致。找零低于 dust 时并入手续费（与 bitcore 路径一致）。金额低于 dust 返回 `BAD_REQUEST`。
    - 结果在内存里保留 5 分钟，只有同一个 agent 能提交，提交一次即作废；`policy` 是按当前账本做的预判，不是承诺。
 2. `send.submit` 重新检查（inspector + PolicyEngine），然后：
