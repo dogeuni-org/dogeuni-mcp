@@ -63,7 +63,7 @@
 
 1. `send.prepare` 在扩展里构造交易，不签名：
    - 选币：只用 agent 账户的 UTXO，去掉低于 dust（0.01 DOGE）的（铭文都在这类小额 UTXO 上），去掉本会话里已被准备中或已广播的交易占用的（同一个 agent 自己先前 prepare 占用的币不算：可用币不够时新的 prepare 拿走它们，那些旧 prepare 作废，提交时返回 `BAD_REQUEST`）；钱包自己广播成功的交易，找回 agent 账户的那个输出在 UTXO 接口列出之前就能花（原始交易留在内存里，排在已列出的可用币之后、旧 prepare 占用的币之前），但连续未确认的交易到 20 笔（`MAX_CHAIN`，节点 mempool 上限 25）就不再往下接；不够时 `INSUFFICIENT_FUNDS` 的 message 写明没算进来的钱在哪：接到 20 笔未确认的找零（确认后可花）、在等审批的那笔、其他 agent 的 prepare（何时释放）；每个输入都取回原始交易并核对 txid，金额和脚本以原始交易为准，不信 UTXO 接口。
-   - 手续费 = `ceil(字节数 / 1000) × feePerKb`，`feePerKb` 取 `/v4/info/dogegas` 的 `medium_fee_per_kb`，与发送页一致。找零低于 dust 时并入手续费（与 bitcore 路径一致）。金额低于 dust 返回 `BAD_REQUEST`。
+   - 手续费 = `ceil(字节数 × feePerKb / 1000)`（按实际大小计费，Dogecoin Core 1.14.5 起节点不再按整 kB 取整），`feePerKb` 取 `/v4/info/dogegas` 的 `medium_fee_per_kb`。找零低于 dust 时并入手续费（与 bitcore 路径一致）。金额低于 dust 返回 `BAD_REQUEST`。
    - 结果在内存里保留 5 分钟，只有同一个 agent 能提交，提交一次即作废；`policy` 是按当前账本做的预判，不是承诺。
 2. `send.submit` 重新检查（inspector + PolicyEngine），然后：
    - `ALLOW`：签名 → 写账本（预占）→ 广播 → 发通知。
